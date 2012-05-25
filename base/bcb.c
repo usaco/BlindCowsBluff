@@ -269,17 +269,16 @@ void play_game()
 // sidepots are annoying!!!! (add an exclamation mark everytime i say this out loud)
 void resolve_sidepots(unsigned int *winnings, unsigned int z)
 {
-	unsigned int i, minwager, pot, hc;
+	unsigned int i, minwager, pot, hc, dist;
 	struct agent_t *a = NULL;
 	
 	for (i = 0, a = agents; i < z; ++i, ++a)
-	{
-		a->pool -= a->wager; winnings[i] = 0u;
-	}
+	{ a->pool -= a->wager; winnings[i] = 0u; }
 	
-	card_t highcard = 0;
 	for (;;)
 	{
+		card_t highcard = 0;
+		
 		// figure out our current wager level
 		for (i = 0, a = agents, minwager = UINT_MAX; i < z; ++i, ++a)
 			if (a->wager) minwager = min(minwager, a->wager);
@@ -291,13 +290,14 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 		for (i = 0, a = agents, pot = 0u; i < z; ++i, ++a) 
 			if (a->wager >= minwager)
 			{
-				if (a->act) highcard = max(highcard, ALL_CARDS[i]);
+				if (a->act && a->wager > 0) highcard = max(highcard, ALL_CARDS[i]);
 				pot += minwager;
 			}
 		
 		// determine number of players in this pot with this card
 		for (i = 0, a = agents, hc = 0; i < z; ++i, ++a)
 			if (a->act && a->wager >= minwager && ALL_CARDS[i] == highcard) ++hc;
+		dist = pot / hc;
 			
 		// process this sidepot
 		for (i = 0, a = agents; i < z; ++i, ++a)
@@ -305,10 +305,10 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 			{
 				// add to my winnings tally and my pool
 				if (a->act && ALL_CARDS[i] == highcard)
-				{ a->pool += pot / hc; winnings[i] += pot / hc; }
+				{ a->pool += dist; winnings[i] += dist; pot -= dist; }
 				
 				// adjust the remainder of my wager and continue
-				a->wager -= minwager;
+				a->act = !!(a->wager -= minwager);
 			}
 	}
 }
