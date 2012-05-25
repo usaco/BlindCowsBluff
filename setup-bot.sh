@@ -9,7 +9,7 @@ rootdir=`pwd`
 
 mkdir $botdir
 
-sed "s/BOTNAME/$botfile/g" example-bots/Makefile.template > $botdir/Makefile
-cp example-bots/bcb-client.c $botdir/
-cp example-bots/bcb-client.h $botdir/
-sed "s/BOTNAME/$botname/g" example-bots/bot-template.c > $botdir/$botfile.c
+sed "s/BOTNAME/$botfile/g" client/Makefile.template > $botdir/Makefile
+cp client/bcb-client.c $botdir/
+cp client/bcb-client.h $botdir/
+sed "s/BOTNAME/$botname/g" client/bot-template.c > $botdir/$botfile.c
