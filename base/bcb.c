@@ -79,6 +79,7 @@ void tell_all(char*, int);
 // close all bots' file descriptors
 void cleanup_bots();
 
+unsigned int starting_money = 0u;
 void setup_game(unsigned int NUMAGENTS)
 {
 	unsigned int i; char msg[MSG_BFR_SZ];
@@ -88,6 +89,7 @@ void setup_game(unsigned int NUMAGENTS)
 	{
 		// get the pool for this bot
 		fscanf(gamedata, "%u", &agents[i].pool);
+		starting_money += agents[i].pool;
 	
 		// get the command for this bot
 		fgets(msg, MSG_BFR_SZ, gamedata);
@@ -264,7 +266,7 @@ void play_game()
 	tell_all("ENDGAME", -1);
 }
 
-// sidepots are annoying!!! (add an exclamation mark everytime i say this out loud)
+// sidepots are annoying!!!! (add an exclamation mark everytime i say this out loud)
 void resolve_sidepots(unsigned int *winnings, unsigned int z)
 {
 	unsigned int i, minwager, pot, hc;
@@ -272,9 +274,7 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 	
 	for (i = 0, a = agents; i < z; ++i, ++a)
 	{
-		a->pool -= a->wager;
-		if (!a->act) { a->pool -= a->wager; a->wager = 0u; }
-		winnings[i] = 0u; a->act = (a->wager > 0);
+		a->pool -= a->wager; winnings[i] = 0u;
 	}
 	
 	card_t highcard = 0;
@@ -282,7 +282,7 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 	{
 		// figure out our current wager level
 		for (i = 0, a = agents, minwager = UINT_MAX; i < z; ++i, ++a)
-			if (a->wager && a->act) minwager = min(minwager, a->wager);
+			if (a->wager) minwager = min(minwager, a->wager);
 			
 		// if there are no wagers left to resolve, we are done
 		if (minwager == UINT_MAX) break;
@@ -291,20 +291,20 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 		for (i = 0, a = agents, pot = 0u; i < z; ++i, ++a) 
 			if (a->wager >= minwager)
 			{
-				highcard = max(highcard, ALL_CARDS[i]);
-				pot += a->wager;
+				if (a->act) highcard = max(highcard, ALL_CARDS[i]);
+				pot += minwager;
 			}
 		
 		// determine number of players in this pot with this card
 		for (i = 0, a = agents, hc = 0; i < z; ++i, ++a)
-			if (a->wager >= minwager && ALL_CARDS[i] == highcard) ++hc;
+			if (a->act && a->wager >= minwager && ALL_CARDS[i] == highcard) ++hc;
 			
 		// process this sidepot
 		for (i = 0, a = agents; i < z; ++i, ++a)
 			if (a->wager >= minwager)
 			{
 				// add to my winnings tally and my pool
-				if (ALL_CARDS[i] == highcard)
+				if (a->act && ALL_CARDS[i] == highcard)
 				{ a->pool += pot / hc; winnings[i] += pot / hc; }
 				
 				// adjust the remainder of my wager and continue
@@ -313,14 +313,9 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 	}
 }
 
-void sigpipe(int signum)
+void sighandler(int signum)
 {
-	fprintf(stderr, "!!! Broken Pipe: SIGPIPE\n");
-	exit(1);
-}
-
-void sigterm(int signum)
-{
+	fprintf(stderr, "!!! Signal %d\n", signum);
 	close_bcb_vis();
 	cleanup_bots();
 	exit(1);
@@ -334,8 +329,9 @@ int main(int argc, char** argv)
 	unsigned int i; char msg[MSG_BFR_SZ];
 	++argv; --argc;
 
-	signal(SIGPIPE, sigpipe);
-	signal(SIGTERM, sigterm);
+	signal(SIGPIPE, sighandler);
+	signal(SIGTERM, sighandler);
+	srand(time(NULL));
 	
 	gamedata = fopen(argv[0], "r");
 	++argv; --argc;
@@ -422,9 +418,10 @@ void setup_agent(char* filename, int bot)
 void listen_bot(char* msg, int bot)
 {
 	// read message from file descriptor for a bot
+	memset(msg, 0, MSG_BFR_SZ);
 	int br = read(agents[bot].fds[READ], msg, MSG_BFR_SZ);
 	
-	msg[br] = msg[strcspn(msg, "\r\n")] = 0; // clear out newlines
+	msg[strcspn(msg, "\r\n")] = 0; // clear out newlines
 	if (DEBUG) fprintf(stderr, "--> RECV [%d]: %s\n", bot, msg);
 }
 

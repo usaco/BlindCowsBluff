@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "bcb-client.h"
 
@@ -8,6 +9,7 @@
 
 // helper macro, sorry for the mess...
 #define EXPECTED(m, s) { fprintf(stderr, "Expected command %s, received %s.\n", s, m); return 1; }
+#define copyself() memcpy(&SELF, &players[SELF.id], sizeof SELF)
 
 /* these functions should be defined by the bot author */
 
@@ -72,7 +74,7 @@ int main(int argc, char **argv)
 	}
 	
 	if (!p) { fprintf(stderr, "No INIT players array received!\n"); return 1; }
-	game_setup(p, numplayers);
+	copyself(); game_setup(players, numplayers);
 	
 	while (scanf("%s", msg))
 	{
@@ -81,7 +83,7 @@ int main(int argc, char **argv)
 		{
 			unsigned int rnum, pstart, rante;
 			scanf("%u %u %u", &rnum, &pstart, &rante);
-			round_start(rnum, pstart, rante);
+			copyself(); round_start(rnum, pstart, rante);
 			
 			while (scanf("%s", msg))
 			{
@@ -92,16 +94,17 @@ int main(int argc, char **argv)
 							&p->wager, &p->active);
 					
 					scanf("%s", msg); if (strcmp(msg, "GO")) EXPECTED(msg, "GO");
-					player_turn(p, numplayers);
+					copyself(); player_turn(players, numplayers);
 				}
 				else if (!strcmp(msg, "ENDROUND"))
 				{
 					int winnings; scanf("%u", &winnings);
 					for (i = 0, p = players; i < numplayers; ++i, ++p)
 					{
-						scanf("%u %u %u %u %u", &p->id, &p->card, &p->pool);
+						scanf("%u %u %u", &p->id, &p->card, &p->pool);
 						p->wager = p->active = 0;
 					}
+					copyself(); round_end(players, numplayers, winnings);
 					break;
 				}
 				// got an unexpected message...
