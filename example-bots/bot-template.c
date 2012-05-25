@@ -2,7 +2,7 @@
 
 #include "bcb-client.h"
 
-const char* BOT_NAME = "NEW BOT";
+const char* BOT_NAME = "BOTNAME";
 
 void game_setup(const struct player_data* players, unsigned int numplayers)
 {
@@ -26,6 +26,6 @@ void round_end(const struct player_data* players, unsigned int numplayers, unsig
 
 void game_end()
 {
-
+	
 }
 
