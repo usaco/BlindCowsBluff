@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 					int k = player_turn(players, numplayers);
 					
 					// perform the chosen action
-					if (k == 0) printf("CALL\n");
+					if (k == CALL) printf("CALL\n");
 					else if (k > 0) printf("WAGER %d\n", k);
 					else printf("FOLD\n");
 				}
