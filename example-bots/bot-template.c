@@ -14,7 +14,7 @@ void round_start(unsigned int rnum, unsigned int pstart, unsigned int ante)
 	
 }
 
-void player_turn(const struct player_data* players, unsigned int numplayers)
+int player_turn(const struct player_data* players, unsigned int numplayers)
 {
 	
 }

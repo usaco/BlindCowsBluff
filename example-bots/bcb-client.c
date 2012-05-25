@@ -21,7 +21,7 @@ extern void game_setup(const struct player_data* /*players*/,
 extern void round_start(unsigned int /*round number*/, 
 	unsigned int /*starting player*/, unsigned int /*ante*/);
 
-extern void player_turn(const struct player_data* /*players*/, 
+extern int player_turn(const struct player_data* /*players*/, 
 	unsigned int /*player count*/);
 
 extern void round_end(const struct player_data* /*players*/, 
@@ -94,7 +94,14 @@ int main(int argc, char **argv)
 							&p->wager, &p->active);
 					
 					scanf("%s", msg); if (strcmp(msg, "GO")) EXPECTED(msg, "GO");
-					copyself(); player_turn(players, numplayers);
+					copyself();
+					
+					int k = player_turn(players, numplayers);
+					
+					// perform the chosen action
+					if (k == 0) printf("CALL\n");
+					else if (k > 0) printf("WAGER %d\n", k);
+					else printf("FOLD\n");
 				}
 				else if (!strcmp(msg, "ENDROUND"))
 				{

@@ -87,7 +87,7 @@ int update_bcb_vis(int numagents, struct agent_t *agents, card_t* cards, const i
 	for (i = 0; i < numagents; ++i)
 	{
 		struct display_t* vis = agents[i].vis;
-		update_card(vis, cards[i]);
+		update_card(vis, agents[i].pool ? cards[i] : -1);
 		update_panel(vis, &agents[i], i == turn ? move : NULL);
 		
 		// draw notification region
