@@ -206,7 +206,7 @@ void play_game()
 			if (!strcmp("CALL", action) || !strcmp("CHECK", action))
 			{
 				new_wager = agents[praise].wager;
-				agents[i].wager = min(new_wager, agents[i].pool);
+				agents[pturn].wager = min(new_wager, agents[pturn].pool);
 				valid = 1;
 			}
 
@@ -215,16 +215,16 @@ void play_game()
 			{
 				sscanf(msg, "%*s %u", &new_wager);
 				valid = (new_wager >= agents[praise].wager && 
-					new_wager <= agents[i].pool);
+					new_wager <= agents[pturn].pool);
 				if (valid)
 				{
-					agents[i].wager = new_wager;
-					if (new_wager > agents[praise].wager) praise = i;
+					agents[pturn].wager = new_wager;
+					if (new_wager > agents[praise].wager) praise = pturn;
 				};
 			}
 
 			// fold is the action we take if we ever receive invalid input
-			if (!strcmp("FOLD", action) || !valid) agents[i].act = 0;
+			if (!strcmp("FOLD", action) || !valid) agents[pturn].act = 0;
 		
 			// update vis
 			char tsafe[MSG_BFR_SZ]; strncpy(tsafe, msg, MSG_BFR_SZ);
