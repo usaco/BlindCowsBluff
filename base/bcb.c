@@ -203,7 +203,7 @@ void play_game()
 			sscanf(msg, "%s", action);
 
 			// match the highest wager made so far
-			if (!strcmp("CALL", action) || !strcmp("CHECK", action))
+			if (!strcmp("CALL", action))
 			{
 				new_wager = agents[praise].wager;
 				agents[pturn].wager = min(new_wager, agents[pturn].pool);

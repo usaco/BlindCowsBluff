@@ -3,7 +3,6 @@
 // actions
 #define FOLD -1
 #define CALL 0
-#define CHECK 0
 #define WAGER(n) n
 
 // player information
