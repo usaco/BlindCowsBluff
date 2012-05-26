@@ -3,6 +3,10 @@ BlindCowsBluff
 
 Implementation of Blind Man's Bluff with bots! USACO 2012
 
+## Have questions?
+
+Try the [FAQ/Wiki](wiki).
+
 ## What is Blind Man's Bluff?
 
 > The standard version is simply high card wins. Each player is dealt one card that he displays to all other players (traditionally stuck to the forehead facing outwards). This is followed by a round of betting. Players attempt to guess if they have the highest card based on the distribution of visible cards and how other players are betting.
@@ -24,7 +28,7 @@ This will create the [ncurses](http://www.gnu.org/software/ncurses/) Blind Cow's
 
 [**Optional**] Consider building the example bots to help with testing:
 
-    cd ../example-bots
+    cd ../client
     make
 
 Make a new bot to begin working. A helper script has been provided for this purpose.
