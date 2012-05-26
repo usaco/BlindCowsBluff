@@ -191,7 +191,7 @@ void play_game()
 			{
 				sprintf(msg, "%u %u %u %d %u", i, 
 					i == pturn || !a->act ? 0 : ALL_CARDS[i],
-					a->pool - a->wager, a->wager, a->act);
+					a->pool, a->wager, a->act);
 				tell_bot(msg, pturn);
 			}
 
@@ -214,8 +214,8 @@ void play_game()
 			if (!strcmp("WAGER", action))
 			{
 				sscanf(msg, "%*s %u", &new_wager);
-				valid = (new_wager >= agents[praise].wager && 
-					new_wager <= agents[pturn].pool);
+				valid = (new_wager == agents[pturn].pool) /* all-in */
+					|| (new_wager >= agents[praise].wager && new_wager <= agents[pturn].pool);
 				if (valid)
 				{
 					agents[pturn].wager = new_wager;
