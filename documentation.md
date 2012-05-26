@@ -8,7 +8,7 @@ Begin by cloning a copy of the Git repo:
 
     git clone git://github.com/authorblues/BlindCowsBluff.git
 
-Go to the base/ directory and compile the driver:
+Go to the `base/` directory and compile the driver:
 
     cd BlindCowsBluff/base
     make
@@ -25,7 +25,7 @@ Make a new bot to begin working. A helper script has been provided for this purp
     cd ..
     bash setup-bot.sh "My Awesome Bot"
 
-This will create a new directory bot-MyAwesomeBot/
+This will create a new directory `bot-MyAwesomeBot/`
 
 ## Writing a Bot
 
