@@ -5,7 +5,7 @@ Implementation of Blind Man's Bluff with bots! USACO 2012
 
 ## Have questions?
 
-Try the [FAQ/Wiki](wiki).
+Try the [FAQ/Wiki](BlindCowsBluff/wiki).
 
 ## What is Blind Man's Bluff?
 
