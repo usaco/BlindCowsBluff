@@ -16,6 +16,9 @@
 #include <string.h>
 #include <time.h>
 
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include <errno.h>
 #include <signal.h>
 
@@ -23,7 +26,7 @@
 #include "bcb-visual.h"
 
 #define MAXAGENTS 16
-#define TIMEOUT_MS 200
+#define TIMEOUT_MS 500
 
 #define MSG_BFR_SZ 128
 
@@ -107,7 +110,7 @@ void setup_game(unsigned int NUMAGENTS)
 	{
 		// tell the bot its ID, it should respond with its name
 		sprintf(msg, "INIT %u", i); tell_bot(msg, i);
-		listen_bot(msg, i);
+		listen_bot_timeout(msg, i, TIMEOUT_MS);
 		
 		strncpy(agents[i].name, msg + 5, 255);
 		agents[i].name[255] = 0;
@@ -153,7 +156,13 @@ void play_game()
 	struct agent_t *a;
 	
 	for (i = 0, a = agents; i < NUMAGENTS; ++i, ++a)
-		a->act = a->pool > 0;
+	{
+		// if the bot has an error, take its money
+		if (a->status == ERROR) a->pool = 0u;
+		
+		// bots with money are considered active
+		a->act = (a->pool > 0);
+	}
 
 	for (pstart = rand() % NUMAGENTS, rnum = 0;; ++rnum)
 	{
@@ -200,7 +209,7 @@ void play_game()
 			listen_bot_timeout(msg, pturn, TIMEOUT_MS);
 
 			// get the action off the message
-			sscanf(msg, "%s", action);
+			valid = sscanf(msg, "%s", action);
 
 			// match the highest wager made so far
 			if (!strcmp("CALL", action))
@@ -240,10 +249,10 @@ void play_game()
 		resolve_sidepots(winnings, NUMAGENTS);
 		
 		int activeplayers = 0;
-		for (i = 0; i < NUMAGENTS; ++i)
+		for (i = 0, a = agents; i < NUMAGENTS; ++i, ++a)
 		{
 			// set whether or not the player is active
-			if (agents[i].act = (agents[i].pool > 0u)) ++activeplayers;
+			if (a->act = (a->status == RUNNING && a->pool > 0u)) ++activeplayers;
 		
 			// send out information about winnings
 			sprintf(msg, "ENDROUND %u", winnings[i]); tell_bot(msg, i);
@@ -349,13 +358,9 @@ int main(int argc, char** argv)
 
 	close_bcb_vis();
 	cleanup_bots();
+	
+	return 0;
 };
-
-#define READ 0
-#define WRITE 1
-
-#define RUNNING 0
-#define ERROR -1
 
 // setup an agent and get its file descriptors
 void setup_agent(char* filename, int bot)
@@ -417,8 +422,10 @@ void setup_agent(char* filename, int bot)
 // listen to a bot for a message
 void listen_bot(char* msg, int bot)
 {
-	// read message from file descriptor for a bot
 	memset(msg, 0, MSG_BFR_SZ);
+	if (agents[bot].status != RUNNING) return;
+
+	// read message from file descriptor for a bot
 	int br = read(agents[bot].fds[READ], msg, MSG_BFR_SZ);
 	
 	msg[strcspn(msg, "\r\n")] = 0; // clear out newlines
@@ -428,7 +435,29 @@ void listen_bot(char* msg, int bot)
 // listen to a bot, with a limited amount of time to wait
 void listen_bot_timeout(char* msg, int bot, int milliseconds)
 {
-	// for now...
+	fd_set rfds;
+	struct timeval tv;
+	int retval;
+	
+	memset(msg, 0, MSG_BFR_SZ);
+	if (agents[bot].status != RUNNING) return;
+	
+	// only care about the bot's file descriptor
+	FD_ZERO(&rfds);
+	FD_SET(agents[bot].fds[READ], &rfds);
+	
+	// timeout in milliseconds
+	tv.tv_sec = 0;
+	tv.tv_usec = milliseconds * 1000u;
+	
+	// wait on this file descriptor...
+	retval = select(1+agents[bot].fds[READ], 
+		&rfds, NULL, NULL, &tv);
+	
+	// error, bot failed
+	if (retval < 1) agents[bot].status = ERROR;
+
+	// if we have data to read, read it
 	listen_bot(msg, bot);
 }
 
