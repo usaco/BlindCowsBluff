@@ -1,5 +1,11 @@
 #pragma once
 
+#define READ 0
+#define WRITE 1
+
+#define RUNNING 0
+#define ERROR -1
+
 struct agent_t
 {
 	char name[256];       // bot name
