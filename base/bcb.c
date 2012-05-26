@@ -394,7 +394,7 @@ void setup_agent(char* filename, int bot)
 
 		close(p2c[0]); close(c2p[1]);
 		agents[bot].status = RUNNING;
-		execv(arglist[0], arglist);
+		execvp(arglist[0], arglist);
 		
 		agents[bot].status = ERROR;
 		fprintf(stderr, "Could not exec bot%d: [%d] %s\n", 
