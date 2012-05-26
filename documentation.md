@@ -29,24 +29,32 @@ This will create a new directory bot-MyAwesomeBot/
 
 ## Writing a Bot
 
-`void game_setup(const struct player_data* players, unsigned int numplayers);`
-  - This function is called when the game begins, and provides initial player pools via the players array.
+```c
+void game_setup(const struct player_data* players, unsigned int numplayers);
+```
+This function is called when the game begins, and provides initial player pools via the players array.
   
-`void round_start(unsigned int rnum, unsigned int pstart, unsigned int ante);`
-  - This function is called when a round begins, and provides the round number, the player that will begin this round, and the ante (obligatory starting wager) for this round.
+```c
+void round_start(unsigned int rnum, unsigned int pstart, unsigned int ante);
+```
+This function is called when a round begins, and provides the round number, the player that will begin this round, and the ante (obligatory starting wager) for this round.
   
-`void player_turn(const struct player_data* players, unsigned int numplayers);`
-  - When this function is called, your bot should respond with your move. Return either FOLD, CALL, or WAGER(n).
-  - FOLD drops out of the round, CALL matches the current highest bet (or goes all-in, if you do not have enough money), and WAGER(n) updates your wager to "$n"
+```c
+void player_turn(const struct player_data* players, unsigned int numplayers);
+```
+When this function is called, your bot should respond with your move. Return either `FOLD`, `CALL`, or `WAGER(n)`. `FOLD` drops out of the round, `CALL` matches the current highest bet (or goes all-in, if you do not have enough money), and `WAGER(n)` updates your wager to "$n"
   
-`void round_end(const struct player_data* players, unsigned int numplayers, unsigned int winnings);`
-  - You will be given information about which card your bot had in the players array. You will also be given the your winnings after sidepots have been computed.
+```c
+void round_end(const struct player_data* players, unsigned int numplayers, unsigned int winnings);
+```
+You will be given information about which card your bot had in the players array. You will also be given the your winnings after sidepots have been computed.
   
-`void game_end();`
-  - This function is called at the end of the game, and should be used to clean up any data structures your bot may have used during the game.
+```c
+void game_end();
+```
+This function is called at the end of the game, and should be used to clean up any data structures your bot may have used during the game.
   
 ## More Information
 
-For information on how to run your bot or how to write a bot in a language other than C, check out the BlindCowsBluff wiki
-  - http://github.com/authorblues/BlindCowsBluff/wiki
+For information on how to run your bot or how to write a bot in a language other than C, check out the BlindCowsBluff wiki: http://github.com/authorblues/BlindCowsBluff/wiki
 
