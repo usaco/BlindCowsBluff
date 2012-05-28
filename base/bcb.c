@@ -82,7 +82,9 @@ void tell_all(char*, int);
 // close all bots' file descriptors
 void cleanup_bots();
 
+// total money in the system
 unsigned int starting_money = 0u;
+
 void setup_game(unsigned int NUMAGENTS)
 {
 	unsigned int i; char msg[MSG_BFR_SZ];
