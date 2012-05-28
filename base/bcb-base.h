@@ -6,6 +6,8 @@
 #define RUNNING 0
 #define ERROR -1
 
+extern unsigned int starting_money;
+
 struct agent_t
 {
 	char name[256];       // bot name
