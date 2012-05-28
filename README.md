@@ -7,6 +7,12 @@ Implementation of Blind Man's Bluff with bots! USACO 2012
 
 Try the [FAQ/Wiki](http://github.com/authorblues/BlindCowsBluff/wiki).
 
+## Need updates?
+
+If you need to update your local copy, navigate to `BlindCowsBluff/` and try:
+
+    git pull origin master
+
 ## What is Blind Man's Bluff?
 
 > The standard version is simply high card wins. Each player is dealt one card that he displays to all other players (traditionally stuck to the forehead facing outwards). This is followed by a round of betting. Players attempt to guess if they have the highest card based on the distribution of visible cards and how other players are betting.
