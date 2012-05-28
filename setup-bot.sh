@@ -10,6 +10,8 @@ rootdir=`pwd`
 mkdir $botdir
 
 sed "s/BOTNAME/$botfile/g" client/Makefile.template > $botdir/Makefile
-cp client/bcb-client.c $botdir/
-cp client/bcb-client.h $botdir/
 sed "s/BOTNAME/$botname/g" client/bot-template.c > $botdir/$botfile.c
+
+cd $botdir
+ln -s ../client/bcb-client.c
+ln -s ../client/bcb-client.h
