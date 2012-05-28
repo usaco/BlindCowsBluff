@@ -11,9 +11,7 @@ Try the [FAQ/Wiki](http://github.com/authorblues/BlindCowsBluff/wiki).
 
 If you need to update your local copy, navigate to `BlindCowsBluff/` and try:
 
-```bash
-git pull origin master
-```
+    git pull origin master
 
 ## What is Blind Man's Bluff?
 
