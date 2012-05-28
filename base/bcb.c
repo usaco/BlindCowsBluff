@@ -345,7 +345,7 @@ int main(int argc, char** argv)
 	gamedata = fopen(argv[0], "r");
 	++argv; --argc;
 
-	fscanf(gamedata, "%u %u %u %u", &xrange, &xdup, &ante, &rtd);
+	fscanf(gamedata, "%u %u %u %hu", &xrange, &xdup, &ante, &rtd);
 	fscanf(gamedata, "%u", &NUMAGENTS);
 
 	setup_game(NUMAGENTS);
