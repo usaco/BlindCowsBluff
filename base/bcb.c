@@ -357,10 +357,13 @@ int main(int argc, char** argv)
 
 	tell_all("READY", -1);
 	play_game();
-
 	close_bcb_vis();
+
+	struct agent_t *a;
+	for (i = 0, a = agents; i < NUMAGENTS; ++i, ++a)
+		if (a->pool) printf("Player #%u (%s) wins!\n", i, a->name);
+
 	cleanup_bots();
-	
 	return 0;
 };
 
@@ -441,6 +444,7 @@ void listen_bot_timeout(char* msg, int bot, int milliseconds)
 	struct timeval tv;
 	int retval;
 	
+	usleep(10000);
 	memset(msg, 0, MSG_BFR_SZ);
 	if (agents[bot].status != RUNNING) return;
 	

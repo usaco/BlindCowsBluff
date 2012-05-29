@@ -130,3 +130,4 @@ void close_bcb_vis()
 	endwin();
 };
 
+
