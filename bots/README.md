@@ -13,3 +13,6 @@
 * given the number of active players, will determine a maximum valued "cutoff" card
   * if a card is bigger than that cutoff card, will FOLD (CALL if no pending wager)
   * if there is no card bigger than the cutoff card, will bet a small amount, or call a wager up to 2*(small amount)
+
+(4) Probabilistic bot
+* bets a number of his remaining chips in proportion with the average card value of the remaining players
