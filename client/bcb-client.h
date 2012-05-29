@@ -3,7 +3,7 @@
 // actions
 #define FOLD -1
 #define CALL 0
-#define WAGER(n) n
+#define WAGER(n) ((int)n)
 
 // player information
 struct player_data
