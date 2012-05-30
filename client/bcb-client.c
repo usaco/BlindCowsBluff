@@ -8,7 +8,7 @@
 #define MSG_BFR_SZ 128
 
 // helper macro, sorry for the mess...
-#define EXPECTED(m, s) { fprintf(stderr, "Expected command %s, received %s.\n", s, m); return 1; }
+#define EXPECTED(m, s) { fprintf(stderr, "Expected command %s, received %s.\n", s, m); return EXIT_FAILURE; }
 #define copyself() memcpy(&SELF, &players[SELF.id], sizeof SELF)
 
 /* these functions should be defined by the bot author */
