@@ -6,7 +6,7 @@
    <agentexec>
  */
 
-#define DEBUG 0
+#define DEBUG 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -242,8 +242,8 @@ void play_game()
 			for (i = 0, a = agents; i < NUMAGENTS; ++i, ++a)
 			{
 				sprintf(msg, "%u %u %u %d %u", i, 
-						i == pturn || !a->act ? 0 : ALL_CARDS[i],
-						a->pool, a->wager, a->act);
+					i == pturn || !a->act ? 0 : ALL_CARDS[i],
+					a->pool, a->wager, a->act);
 				tell_bot(msg, pturn);
 			}
 
@@ -500,13 +500,13 @@ void setup_agent(char* filename, int bot)
 // listen to a bot for a message
 void listen_bot(char* msg, int bot)
 {
-	memset(msg, 0, MSG_BFR_SZ);
 	if (agents[bot].status != RUNNING) return;
 
 	// read message from file descriptor for a bot
+	bzero(msg, MSG_BFR_SZ);
 	int br = read(agents[bot].fds[READ], msg, MSG_BFR_SZ);
 
-	msg[strcspn(msg, "\r\n")] = 0; // clear out newlines
+	// msg[strcspn(msg, "\r\n")] = 0; // clear out newlines
 	if (DEBUG) fprintf(stderr, "--> RECV [%d]: %s\n", bot, msg);
 }
 
@@ -517,7 +517,6 @@ void listen_bot_timeout(char* msg, int bot, int milliseconds)
 	struct timeval tv;
 	int retval;
 
-	bzero(msg, MSG_BFR_SZ);
 	if (agents[bot].status != RUNNING) return;
 
 	// only care about the bot's file descriptor
@@ -530,7 +529,7 @@ void listen_bot_timeout(char* msg, int bot, int milliseconds)
 
 	// wait on this file descriptor...
 	retval = select(1+agents[bot].fds[READ], 
-			&rfds, NULL, NULL, &tv);
+		&rfds, NULL, NULL, &tv);
 
 	// error, bot failed
 	if (retval < 1) agents[bot].status = ERROR;
@@ -543,8 +542,7 @@ void listen_bot_timeout(char* msg, int bot, int milliseconds)
 void tell_bot(char* msg, int bot)
 {
 	// write message to file descriptor for a bot
-	write(agents[bot].fds[WRITE], msg, strlen(msg));
-	write(agents[bot].fds[WRITE], "\n", 1);
+	write(agents[bot].fds[WRITE], msg, MSG_BFR_SZ);
 	if (DEBUG) fprintf(stderr, "<-- SEND [%d]: %s\n", bot, msg);
 }
 
