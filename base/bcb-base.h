@@ -19,6 +19,7 @@ struct agent_t
 	int status;           // bot's current status
 	int fds[2];           // file descriptors to communicate
 	int pid;              // process id of agent
+	int timeout;          // amount of time given to respond
 
 // VISUALIZATION:
 	void* vis;            // data for visualisation
