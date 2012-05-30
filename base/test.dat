@@ -1,6 +1,9 @@
 13 4 1 5
 
-3
-1000 ../client/call-bot
-1000 ../client/call-bot
-1000 ../client/call-bot
+6
+1000 ../bots/CallBot
+1000 ../bots/CallBot
+1000 ../bots/Conservative
+1000 ../bots/Conservative
+1000 ../bots/AllIn
+1000 ../bots/Random

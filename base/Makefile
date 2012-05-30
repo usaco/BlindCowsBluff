@@ -4,8 +4,9 @@ CFLAGS=-g
 all: bcb-curses bcb-null
 
 bcb-visual.h: bcb-base.h
-bcb-curses.o: bcb-curses.c bcb-base.h bcb-visual.h
+
 bcb-null.o: bcb-null.c bcb-base.h bcb-visual.h
+bcb-curses.o: bcb-curses.c bcb-base.h bcb-visual.h
 bcb-opengl.o: bcb-opengl.c bcb-base.h bcb-visual.h
 
 bcb.o: bcb.c bcb-base.h bcb-visual.h

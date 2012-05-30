@@ -1,10 +1,10 @@
 // FORMAT FOR DRIVER FILE
 /*
-	<range> <xdup> <ante> <rtd>
-	<NUMAGENTS>
+   <range> <xdup> <ante> <rtd>
+   <NUMAGENTS>
 
-	<agentexec>
-*/
+   <agentexec>
+ */
 
 #define DEBUG 0
 
@@ -18,6 +18,8 @@
 
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #include <errno.h>
 #include <signal.h>
@@ -26,19 +28,26 @@
 #include "bcb-visual.h"
 
 #define MAXAGENTS 16
-#define TIMEOUT_MS 500
-
 #define MSG_BFR_SZ 128
 
+#define TIMEOUT_MS_BOT 500
+#define TIMEOUT_MS_HMN 30000
+
+#define xstr(s) _str(s)
+#define _str(s) #s
+
+#define PORTNO 1337
+#define PORTSTR xstr(PORTNO)
+
 /*#define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
+  ({ __typeof__ (a) _a = (a); \
+  __typeof__ (b) _b = (b); \
+  _a > _b ? _a : _b; })
 
 #define min(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a < _b ? _a : _b; })*/
+({ __typeof__ (a) _a = (a); \
+__typeof__ (b) _b = (b); \
+_a < _b ? _a : _b; })*/
 
 #define max(a,b) (a > b ? a : b)
 #define min(a,b) (a < b ? a : b)
@@ -85,9 +94,40 @@ void cleanup_bots();
 // total money in the system
 unsigned int starting_money = 0u;
 
+// socket file descriptor
+int sockfd;
+
 void setup_game(unsigned int NUMAGENTS)
 {
 	unsigned int i; char msg[MSG_BFR_SZ];
+	struct addrinfo hints;
+	struct addrinfo *result, *rp;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
+	hints.ai_protocol = 0;
+	hints.ai_addr = NULL;
+	hints.ai_next = NULL;
+
+	if (getaddrinfo(NULL, PORTSTR, &hints, &result))
+	{ fprintf(stderr, "getaddrinfo failed\n"); exit(1); }
+
+	for (rp = result; rp; rp = rp->ai_next)
+	{
+		sockfd = socket(rp->ai_family,
+			rp->ai_socktype, rp->ai_protocol);
+		if (sockfd == -1) continue;
+		if (bind(sockfd, rp->ai_addr,
+			rp->ai_addrlen) == 0) break;
+
+		close(sockfd);
+	}
+
+	if (!rp) exit(1);
+	freeaddrinfo(result);
+	listen(sockfd, 8);
 
 	// setup all bots provided
 	for (i = 0; i < NUMAGENTS; ++i)
@@ -110,10 +150,10 @@ void setup_game(unsigned int NUMAGENTS)
 
 	for (i = 0; i < NUMAGENTS; ++i)
 	{
-		// tell the bot its ID, it should respond with its name
+		// tell the bot its id, it should respond with its name
 		sprintf(msg, "INIT %u", i); tell_bot(msg, i);
-		listen_bot_timeout(msg, i, TIMEOUT_MS);
-		
+		listen_bot_timeout(msg, i, agents[i].timeout);
+
 		strncpy(agents[i].name, msg + 5, 255);
 		agents[i].name[255] = 0;
 	}
@@ -146,7 +186,8 @@ void shuffle(card_t *cards, unsigned int num)
 	{
 		int j = rand() % i;
 		card_t t = cards[j];
-		cards[j] = cards[i]; cards[i] = t;
+		cards[j] = cards[i];
+		cards[i] = t;
 	}
 }
 
@@ -156,12 +197,12 @@ void play_game()
 	char msg[MSG_BFR_SZ];
 	unsigned int i, pstart, rnum;
 	struct agent_t *a;
-	
+
 	for (i = 0, a = agents; i < NUMAGENTS; ++i, ++a)
 	{
 		// if the bot has an error, take its money
 		if (a->status == ERROR) a->pool = 0u;
-		
+
 		// bots with money are considered active
 		a->act = (a->pool > 0);
 	}
@@ -201,14 +242,14 @@ void play_game()
 			for (i = 0, a = agents; i < NUMAGENTS; ++i, ++a)
 			{
 				sprintf(msg, "%u %u %u %d %u", i, 
-					i == pturn || !a->act ? 0 : ALL_CARDS[i],
-					a->pool, a->wager, a->act);
+						i == pturn || !a->act ? 0 : ALL_CARDS[i],
+						a->pool, a->wager, a->act);
 				tell_bot(msg, pturn);
 			}
 
 			// let the player make his move (with timeout)
 			tell_bot("GO", pturn);
-			listen_bot_timeout(msg, pturn, TIMEOUT_MS);
+			listen_bot_timeout(msg, pturn, agents[pturn].timeout);
 
 			// get the action off the message
 			valid = sscanf(msg, "%s", action);
@@ -236,11 +277,11 @@ void play_game()
 
 			// fold is the action we take if we ever receive invalid input
 			if (!strcmp("FOLD", action) || !valid) agents[pturn].act = 0;
-		
+
 			// update vis
 			char tsafe[MSG_BFR_SZ]; strncpy(tsafe, msg, MSG_BFR_SZ);
 			update_bcb_vis(NUMAGENTS, agents, ALL_CARDS, pturn, tsafe);
-		
+
 			// get next player
 			do { ++pturn; pturn %= NUMAGENTS; a = &agents[pturn]; }
 			while ( pturn != praise && (!a->act || a->wager >= a->pool) );
@@ -249,31 +290,31 @@ void play_game()
 		// ugh, sidepots
 		unsigned int winnings[MAXAGENTS];
 		resolve_sidepots(winnings, NUMAGENTS);
-		
+
 		int activeplayers = 0;
 		for (i = 0, a = agents; i < NUMAGENTS; ++i, ++a)
 		{
 			// set whether or not the player is active
 			if (a->act = (a->status == RUNNING && a->pool > 0u)) ++activeplayers;
-		
+
 			// send out information about winnings
 			sprintf(msg, "ENDROUND %u", winnings[i]); tell_bot(msg, i);
 		}
-		
+
 		for (i = 0, a = agents; i < NUMAGENTS; ++i, ++a)
 		{
 			sprintf(msg, "%u %u %u", i, ALL_CARDS[i], a->pool);
 			tell_all(msg, -1);
 		}
-		
+
 		update_bcb_vis(NUMAGENTS, agents, ALL_CARDS, pturn, NULL);
 		if (activeplayers <= 1) break;
-		
+
 		// set the next round starter to the next active player
 		do { ++pstart; pstart %= NUMAGENTS; }
 		while ( !agents[pstart].act || !agents[pstart].pool );
 	}
-	
+
 	tell_all("ENDGAME", -1);
 }
 
@@ -282,21 +323,21 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 {
 	unsigned int i, minwager, pot, hc, dist;
 	struct agent_t *a = NULL;
-	
+
 	for (i = 0, a = agents; i < z; ++i, ++a)
 	{ a->pool -= a->wager; winnings[i] = 0u; }
-	
+
 	for (;;)
 	{
 		card_t highcard = 0;
-		
+
 		// figure out our current wager level
 		for (i = 0, a = agents, minwager = UINT_MAX; i < z; ++i, ++a)
 			if (a->wager) minwager = min(minwager, a->wager);
-			
+
 		// if there are no wagers left to resolve, we are done
 		if (minwager == UINT_MAX) break;
-		
+
 		// determine the highest card for this sidepot and pot size
 		for (i = 0, a = agents, pot = 0u; i < z; ++i, ++a) 
 			if (a->wager >= minwager)
@@ -304,12 +345,12 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 				if (a->act && a->wager > 0) highcard = max(highcard, ALL_CARDS[i]);
 				pot += minwager;
 			}
-		
+
 		// determine number of players in this pot with this card
 		for (i = 0, a = agents, hc = 0; i < z; ++i, ++a)
 			if (a->act && a->wager >= minwager && ALL_CARDS[i] == highcard) ++hc;
 		dist = pot / hc;
-			
+
 		// process this sidepot
 		for (i = 0, a = agents; i < z; ++i, ++a)
 			if (a->wager >= minwager)
@@ -317,7 +358,7 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 				// add to my winnings tally and my pool
 				if (a->act && ALL_CARDS[i] == highcard)
 				{ a->pool += dist; winnings[i] += dist; pot -= dist; }
-				
+
 				// adjust the remainder of my wager and continue
 				a->act = !!(a->wager -= minwager);
 			}
@@ -336,14 +377,17 @@ int main(int argc, char** argv)
 {
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
-	
+
 	unsigned int i; char msg[MSG_BFR_SZ];
 	++argv; --argc;
 
 	signal(SIGPIPE, sighandler);
 	signal(SIGTERM, sighandler);
-	srand(time(NULL));
 	
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	srand(tv.tv_usec);
+
 	gamedata = fopen(argv[0], "r");
 	++argv; --argc;
 
@@ -370,57 +414,86 @@ int main(int argc, char** argv)
 // setup an agent and get its file descriptors
 void setup_agent(char* filename, int bot)
 {
-	int i, pid, c2p[2], p2c[2];
-	
-	char *p, *arglist[100];
-	for (i = 0, p = strtok(filename, " "); p; 
-		++i, p = strtok(NULL, " ")) arglist[i] = strdup(p);
-	arglist[i] = NULL;
-
-	// setup anonymous pipes to replace child's stdin/stdout
-	if (pipe(c2p) || pipe(p2c))
+	if (!strcmp(filename, "HUMAN"))
 	{
-		// the pipes were not properly set up (perhaps no more file descriptors)
-		fprintf(stderr, "Couldn't set up communication for bot%d\n", bot);
-		exit(1);
-	}
+		socklen_t clen;
+		struct sockaddr_in cli_addr;
+		int nsockfd;
 
-	// fork here!
-	switch (pid = fork())
-	{
-	case -1: // error forking
-		agents[bot].status = ERROR;
-		fprintf(stderr, "Could not fork process to run bot%d: '%s'\n", bot, filename);
-		exit(1);
+		struct agent_t* agent = &agents[bot];
+		agent->status = ERROR;
+		clen = sizeof cli_addr;
 
-	case 0: // child process
-		close(p2c[WRITE]); close(c2p[READ]);
-		
-		if (STDIN_FILENO != dup2(p2c[READ], STDIN_FILENO))
-			fprintf(stderr, "Could not replace stdin on bot%d\n", bot);
-		
-		if (STDOUT_FILENO != dup2(c2p[WRITE], STDOUT_FILENO))
-			fprintf(stderr, "Could not replace stdout on bot%d\n", bot);
+		if (DEBUG) fprintf(stderr, "Accepting connections"
+				" for bot #%d\n", bot+1);
 
-		close(p2c[0]); close(c2p[1]);
-		agents[bot].status = RUNNING;
-		execvp(arglist[0], arglist);
-		
-		agents[bot].status = ERROR;
-		fprintf(stderr, "Could not exec bot%d: [%d] %s\n", 
-			bot, errno, strerror(errno));
+		nsockfd = accept(sockfd, 
+				(struct sockaddr *) &cli_addr, &clen);
+		if (nsockfd < 0) return;
 
-		exit(1);
-		break;
+		if (DEBUG) fprintf(stderr, "...bot #%d connected"
+				" successfully!\n", bot+1);
 
-	default: // parent process
-		agents[bot].pid = pid;
-		close(p2c[READ]); close(c2p[WRITE]);
-
-		agents[bot].fds[READ ] = c2p[READ ]; // save the file descriptors in the
-		agents[bot].fds[WRITE] = p2c[WRITE]; // returned parameter
-		
+		agent->status = RUNNING;
+		agent->fds[READ] = agent->fds[WRITE] = nsockfd;
+		agent->timeout = TIMEOUT_MS_HMN;
 		return;
+	}
+	else
+	{
+		int i, pid, c2p[2], p2c[2];
+		agents[bot].timeout = TIMEOUT_MS_BOT;
+
+		char *p, *arglist[100];
+		for (i = 0, p = strtok(filename, " "); p; 
+			++i, p = strtok(NULL, " ")) arglist[i] = strdup(p);
+		arglist[i] = NULL;
+
+		// setup anonymous pipes to replace child's stdin/stdout
+		if (pipe(c2p) || pipe(p2c))
+		{
+			// the pipes were not properly set up (perhaps no more file descriptors)
+			fprintf(stderr, "Couldn't set up communication for bot%d\n", bot);
+			exit(1);
+		}
+
+		// fork here!
+		switch (pid = fork())
+		{
+		case -1: // error forking
+			agents[bot].status = ERROR;
+			fprintf(stderr, "Could not fork process to run bot%d: '%s'\n", bot, filename);
+			exit(1);
+
+		case 0: // child process
+			close(p2c[WRITE]); close(c2p[READ]);
+			
+			if (STDIN_FILENO != dup2(p2c[READ], STDIN_FILENO))
+				fprintf(stderr, "Could not replace stdin on bot%d\n", bot);
+			
+			if (STDOUT_FILENO != dup2(c2p[WRITE], STDOUT_FILENO))
+				fprintf(stderr, "Could not replace stdout on bot%d\n", bot);
+
+			close(p2c[0]); close(c2p[1]);
+			agents[bot].status = RUNNING;
+			execvp(arglist[0], arglist);
+			
+			agents[bot].status = ERROR;
+			fprintf(stderr, "Could not exec bot%d: [%d] %s\n", 
+				bot, errno, strerror(errno));
+
+			exit(1);
+			break;
+
+		default: // parent process
+			agents[bot].pid = pid;
+			close(p2c[READ]); close(c2p[WRITE]);
+
+			agents[bot].fds[READ ] = c2p[READ ]; // save the file descriptors in the
+			agents[bot].fds[WRITE] = p2c[WRITE]; // returned parameter
+			
+			return;
+		}
 	}
 }
 
@@ -432,7 +505,7 @@ void listen_bot(char* msg, int bot)
 
 	// read message from file descriptor for a bot
 	int br = read(agents[bot].fds[READ], msg, MSG_BFR_SZ);
-	
+
 	msg[strcspn(msg, "\r\n")] = 0; // clear out newlines
 	if (DEBUG) fprintf(stderr, "--> RECV [%d]: %s\n", bot, msg);
 }
@@ -443,23 +516,22 @@ void listen_bot_timeout(char* msg, int bot, int milliseconds)
 	fd_set rfds;
 	struct timeval tv;
 	int retval;
-	
-	usleep(10000);
-	memset(msg, 0, MSG_BFR_SZ);
+
+	bzero(msg, MSG_BFR_SZ);
 	if (agents[bot].status != RUNNING) return;
-	
+
 	// only care about the bot's file descriptor
 	FD_ZERO(&rfds);
 	FD_SET(agents[bot].fds[READ], &rfds);
-	
+
 	// timeout in milliseconds
 	tv.tv_sec = 0;
 	tv.tv_usec = milliseconds * 1000u;
-	
+
 	// wait on this file descriptor...
 	retval = select(1+agents[bot].fds[READ], 
-		&rfds, NULL, NULL, &tv);
-	
+			&rfds, NULL, NULL, &tv);
+
 	// error, bot failed
 	if (retval < 1) agents[bot].status = ERROR;
 
@@ -480,7 +552,7 @@ void tell_bot(char* msg, int bot)
 void tell_all(char* msg, int exclude)
 {
 	int i; for (i = 0; i < NUMAGENTS; ++i)
-	if (i != exclude) tell_bot(msg, i);
+		if (i != exclude) tell_bot(msg, i);
 };
 
 // close all bots' file descriptors
@@ -489,7 +561,6 @@ void cleanup_bots()
 	int i; for (i = 0; i < NUMAGENTS; ++i)
 	{
 		close(agents[i].fds[0]);
-		close(agents[i].fds[1]);
 		kill(agents[i].pid, SIGTERM);
 	};
 };
