@@ -349,7 +349,7 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 		// determine number of players in this pot with this card
 		for (i = 0, a = agents, hc = 0; i < z; ++i, ++a)
 			if (a->act && a->wager >= minwager && ALL_CARDS[i] == highcard) ++hc;
-		dist = pot / hc;
+		dist = hc ? pot / hc : 0;
 
 		// process this sidepot
 		for (i = 0, a = agents; i < z; ++i, ++a)
