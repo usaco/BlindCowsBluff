@@ -15,6 +15,8 @@
 
 extern const char* BOT_NAME;
 
+extern int client_setup(int* /*argc*/, char*** /*argv*/);
+
 extern void game_setup(const struct player_data* /*players*/, 
 	unsigned int /*player count*/);
 
@@ -46,15 +48,19 @@ int main(int argc, char **argv)
 	int i;
 	char msg[MSG_BFR_SZ];
 	char tag[MSG_BFR_SZ];
-	
+
 	struct player_data *p;
-	
-	setbuf(stdout, NULL);	
+
+	--argc; ++argv;
+	setbuf(stdout, NULL);
 	setbuf(stdin , NULL);
+
+	// only for human clients
+	if (!client_setup(&argc, &argv)) return;
 
 	scanf("%*s %d", &SELF.id);
 	printf("NAME %s\n", BOT_NAME);
-	
+
 	while (scanf("%s", msg))
 	{
 		if (!strcmp(msg, "READY")) break;
@@ -70,12 +76,12 @@ int main(int argc, char **argv)
 		else if (!strcmp(msg, "CARDS"))
 			scanf("%u %u", &XRANGE, &XDUP);
 		else if (!strcmp(msg, "ANTE"));
-			scanf("%*d %u", &ROUNDS_TO_DBL);
+		scanf("%*d %u", &ROUNDS_TO_DBL);
 	}
-	
+
 	if (!p) { fprintf(stderr, "No INIT players array received!\n"); return 1; }
 	copyself(); game_setup(players, numplayers);
-	
+
 	while (scanf("%s", msg))
 	{
 		if (!strcmp(msg, "ENDGAME")) break;
@@ -84,7 +90,7 @@ int main(int argc, char **argv)
 			unsigned int rnum, pstart, rante;
 			scanf("%u %u %u", &rnum, &pstart, &rante);
 			copyself(); round_start(rnum, pstart, rante);
-			
+
 			while (scanf("%s", msg))
 			{
 				if (!strcmp(msg, "TURN"))
@@ -92,12 +98,13 @@ int main(int argc, char **argv)
 					for (i = 0, p = players; i < numplayers; ++i, ++p)
 						scanf("%u %u %u %u %u", &p->id, &p->card, &p->pool, 
 							&p->wager, &p->active);
-					
+
 					scanf("%s", msg); if (strcmp(msg, "GO")) EXPECTED(msg, "GO");
 					copyself();
-					
+
 					int k = player_turn(players, numplayers);
-					
+					if (k > SELF.pool) k = SELF.pool;
+
 					// perform the chosen action
 					if (k == CALL) printf("CALL\n");
 					else if (k > 0) printf("WAGER %d\n", k);
