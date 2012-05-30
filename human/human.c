@@ -7,6 +7,9 @@
 #include <sys/types.h>
 #include <netdb.h>
 
+#include <curses.h>
+#include <form.h>
+
 #include "bcb-client.h"
 
 char _bot_name[256];
