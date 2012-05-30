@@ -55,7 +55,6 @@ int main(int argc, char **argv)
 	setbuf(stdout, NULL);
 	setbuf(stdin , NULL);
 
-	// only for human clients
 	if (!client_setup(&argc, &argv)) return;
 
 	scanf("%*s %d", &SELF.id);
