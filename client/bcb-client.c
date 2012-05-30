@@ -55,7 +55,8 @@ int main(int argc, char **argv)
 	setbuf(stdout, NULL);
 	setbuf(stdin , NULL);
 
-	if (!client_setup(&argc, &argv)) return;
+	if (!client_setup(&argc, &argv))
+		return EXIT_FAILURE;
 
 	scanf("%*s %d", &SELF.id);
 	printf("NAME %s\n", BOT_NAME);
@@ -105,9 +106,12 @@ int main(int argc, char **argv)
 					if (k > SELF.pool) k = SELF.pool;
 
 					// perform the chosen action
-					if (k == CALL) printf("CALL\n");
-					else if (k > 0) printf("WAGER %d\n", k);
-					else printf("FOLD\n");
+					switch (k)
+					{
+						case CALL: printf("CALL\n"); break;
+						case FOLD: printf("FOLD\n"); break;
+						default:   printf("WAGER %d\n", k); break;
+					}
 				}
 				else if (!strcmp(msg, "ENDROUND"))
 				{
@@ -129,5 +133,5 @@ int main(int argc, char **argv)
 	}
 
 	game_end();
-	return 0;
+	return EXIT_SUCCESS;
 }
