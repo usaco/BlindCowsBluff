@@ -79,6 +79,8 @@ int setup_bcb_vis(int numagents, struct agent_t *agents, int *argc, char ***argv
 
 	curs_set(0);
 	clear();
+	noecho();
+	cbreak();
 	
 	// don't care about y
 	getmaxyx(stdscr, i, SCREEN_WIDTH);
