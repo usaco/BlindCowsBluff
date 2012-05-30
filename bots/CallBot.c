@@ -4,6 +4,11 @@
 
 const char* BOT_NAME = "CallBot";
 
+int client_setup(int *argc, char ***argv)
+{
+	return 1;
+}
+
 void game_setup(const struct player_data* players, unsigned int numplayers)
 {
 
