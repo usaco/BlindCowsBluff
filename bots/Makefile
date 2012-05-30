@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-g
 
-all: CallBot AllIn Conservative Random
+all: CallBot AllIn Probabilistic Conservative Random
 
 bcb-client.o: bcb-client.c bcb-client.h
 
@@ -11,6 +11,10 @@ CallBot: bcb-client.o CallBot.o
 
 AllIn.o: AllIn.c bcb-client.h
 AllIn: bcb-client.o AllIn.o
+	${CC} ${CFLAGS} -o $@ $^
+
+Probabilistic.o: Probabilistic.c bcb-client.h
+Probabilistic: bcb-client.o Probabilistic.o
 	${CC} ${CFLAGS} -o $@ $^
 
 Conservative.o: Conservative.c bcb-client.h
