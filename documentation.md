@@ -13,11 +13,11 @@ Go to the `base/` directory and compile the driver:
     cd BlindCowsBluff/base
     make
 
-This will create the ncurses Blind Cow's Bluff driver.
+This will create the [ncurses](http://www.gnu.org/software/ncurses/) Blind Cow's Bluff driver.
 
-[**Optional**] Consider building the example bots to help with testing:
+Next, build the example bots to help with testing:
 
-    cd ../client
+    cd ../bots
     make
 
 Make a new bot to begin working. A helper script has been provided for this purpose.
