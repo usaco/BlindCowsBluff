@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "bcb-client.h"
 
@@ -8,7 +9,8 @@
 #define MSG_BFR_SZ 128
 
 // helper macro, sorry for the mess...
-#define EXPECTED(m, s) { fprintf(stderr, "Expected command %s, received %s.\n", s, m); return EXIT_FAILURE; }
+#define EXPECTED(m, s) { fprintf(stderr, "[%u] Expected command %s," \
+	" received %s.\n", SELF.id, s, m); return EXIT_FAILURE; }
 #define copyself() memcpy(&SELF, &players[SELF.id], sizeof SELF)
 
 /* these functions should be defined by the bot author */
@@ -43,13 +45,37 @@ unsigned int XRANGE, XDUP;
 
 unsigned int ROUNDS_TO_DBL;
 
+int _fdout = STDOUT_FILENO, _fdin = STDIN_FILENO;
+
+int recv(char* msg)
+{
+	bzero(msg, MSG_BFR_SZ);
+
+	// read message from file descriptor for a bot
+	int bl, br; char* m = msg;
+	for (bl = MSG_BFR_SZ; bl > 0; bl -= br, m += br)
+		br = read(_fdin, m, bl);
+
+	return br;
+}
+
+int send(char* msg)
+{
+	// write message to file descriptor for a bot
+	int bl, br; char* m = msg;
+	for (bl = MSG_BFR_SZ; bl > 0; bl -= br, m += br)
+		br = write(_fdout, m, bl);
+
+	return br;
+}
+
 int main(int argc, char **argv)
 {
-	int i;
+	int i, cc;
 	char msg[MSG_BFR_SZ];
 	char tag[MSG_BFR_SZ];
 
-	struct player_data *p;
+	struct player_data *p = NULL;
 
 	--argc; ++argv;
 	setbuf(stdout, NULL);
@@ -58,49 +84,57 @@ int main(int argc, char **argv)
 	if (!client_setup(&argc, &argv))
 		return EXIT_FAILURE;
 
-	scanf("%*s %d", &SELF.id);
-	printf("NAME %s\n", BOT_NAME);
+	recv(msg); sscanf(msg, "%*s %d", &SELF.id);
+	sprintf(msg, "NAME %s", BOT_NAME); send(msg);
 
-	while (scanf("%s", msg))
+	while ((cc = recv(msg)))
 	{
-		if (!strcmp(msg, "READY")) break;
-		else if (!strcmp(msg, "PLAYERS"))
+		sscanf(msg, "%s", tag);
+		
+		if (!strcmp(tag, "READY")) break;
+		else if (!strcmp(tag, "PLAYERS"))
 		{
-			scanf("%u", &numplayers);			
+			sscanf(msg, "%*s %u", &numplayers);
 			for (i = 0, p = players; i < numplayers; ++i, ++p)
 			{
-				scanf("%u %u", &p->id, &p->pool);
+				recv(msg); sscanf(msg, "%u %u", &p->id, &p->pool);
 				p->wager = p->card = p->active = 0;
 			}
 		}
-		else if (!strcmp(msg, "CARDS"))
-			scanf("%u %u", &XRANGE, &XDUP);
-		else if (!strcmp(msg, "ANTE"));
-		scanf("%*d %u", &ROUNDS_TO_DBL);
+		else if (!strcmp(tag, "CARDS"))
+			sscanf(msg, "%*s %u %u", &XRANGE, &XDUP);
+		else if (!strcmp(tag, "ANTE"));
+			sscanf(msg, "%*s %*d %u", &ROUNDS_TO_DBL);
 	}
 
-	if (!p) { fprintf(stderr, "No INIT players array received!\n"); return 1; }
+	if (!p) EXPECTED(tag, "PLAYERS");
 	copyself(); game_setup(players, numplayers);
 
-	while (scanf("%s", msg))
+	while ((cc = recv(msg)))
 	{
-		if (!strcmp(msg, "ENDGAME")) break;
-		else if (!strcmp(msg, "ROUND"))
+		sscanf(msg, "%s", tag);
+		
+		if (!strcmp(tag, "ENDGAME")) break;
+		else if (!strcmp(tag, "ROUND"))
 		{
 			unsigned int rnum, pstart, rante;
-			scanf("%u %u %u", &rnum, &pstart, &rante);
+			sscanf(msg, "%*s %u %u %u", &rnum, &pstart, &rante);
 			copyself(); round_start(rnum, pstart, rante);
 
-			while (scanf("%s", msg))
+			while ((cc = recv(msg)))
 			{
-				if (!strcmp(msg, "TURN"))
+				sscanf(msg, "%s", tag);
+				if (!strcmp(tag, "TURN"))
 				{
 					for (i = 0, p = players; i < numplayers; ++i, ++p)
-						scanf("%u %u %u %u %u", &p->id, &p->card, &p->pool, 
+					{
+						recv(msg);
+						sscanf(msg, "%u %u %u %u %u", &p->id, &p->card, &p->pool, 
 							&p->wager, &p->active);
+					}
 
-					scanf("%s", msg); if (strcmp(msg, "GO")) EXPECTED(msg, "GO");
-					copyself();
+					copyself(); recv(tag);
+					if (strcmp(tag, "GO")) EXPECTED(tag, "GO");
 
 					int k = player_turn(players, numplayers);
 					if (k > SELF.pool) k = SELF.pool;
@@ -108,28 +142,29 @@ int main(int argc, char **argv)
 					// perform the chosen action
 					switch (k)
 					{
-						case CALL: printf("CALL\n"); break;
-						case FOLD: printf("FOLD\n"); break;
-						default:   printf("WAGER %d\n", k); break;
+						case CALL: sprintf(msg, "CALL"); break;
+						case FOLD: sprintf(msg, "FOLD"); break;
+						default:   sprintf(msg, "WAGER %d", k); break;
 					}
+					send(msg);
 				}
-				else if (!strcmp(msg, "ENDROUND"))
+				else if (!strcmp(tag, "ENDROUND"))
 				{
-					int winnings; scanf("%u", &winnings);
+					int winnings; sscanf(msg, "%*s %u", &winnings);
 					for (i = 0, p = players; i < numplayers; ++i, ++p)
 					{
-						scanf("%u %u %u", &p->id, &p->card, &p->pool);
-						p->wager = p->active = 0;
+						recv(msg); p->wager = p->active = 0;
+						sscanf(msg, "%u %u %u", &p->id, &p->card, &p->pool);
 					}
 					copyself(); round_end(players, numplayers, winnings);
 					break;
 				}
 				// got an unexpected message...
-				else EXPECTED(msg, "TURN/ENDROUND");
+				else EXPECTED(tag, "TURN/ENDROUND");
 			}
 		}
 		// got an unexpected message...
-		else EXPECTED(msg, "ROUND/ENDGAME");
+		else EXPECTED(tag, "ROUND/ENDGAME");
 	}
 
 	game_end();

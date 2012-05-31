@@ -30,3 +30,6 @@ extern unsigned int XRANGE, XDUP;
 // number of rounds between doubling of ante
 extern unsigned int ROUNDS_TO_DBL;
 
+// file descriptors
+extern int _fdout, _fdin;
+

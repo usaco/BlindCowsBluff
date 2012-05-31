@@ -21,7 +21,7 @@ void round_start(unsigned int rnum, unsigned int pstart, unsigned int ante)
 
 int player_turn(const struct player_data* players, unsigned int numplayers)
 {
-	int num_active=0, i, j, cutoff, pending = 0;
+	int num_active=0, i, cutoff, pending = 0;
 	double fraction;
 
 	for(i=0; i<numplayers; i++) {
