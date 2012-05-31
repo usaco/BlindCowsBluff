@@ -25,7 +25,7 @@ struct display_t
 
 unsigned int sleep_time = 500;
 
-int update_card(struct display_t* disp, int card, int qhigh)
+void update_card(struct display_t* disp, int card, int qhigh)
 {
 	werase(disp->card);
 	box(disp->card, 0, 0);
@@ -125,6 +125,7 @@ int update_bcb_vis(int numagents, struct agent_t *agents, card_t* cards, const i
 	}
 	
 	usleep(sleep_time);
+	return 1;
 };
 
 void close_bcb_vis()

@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g
+CFLAGS=-g -Wall
 
 all: bcb-curses bcb-null
 
@@ -15,7 +15,7 @@ bcb-null: bcb.o bcb-null.o
 	${CC} ${CFLAGS} -o $@ $^
 
 bcb-curses: bcb.o bcb-curses.o
-	${CC} ${CFLAGS} -o $@ $^ -lcurses
+	${CC} ${CFLAGS} -o $@ $^ -lncurses
 
 clean:
 	rm -f *.o

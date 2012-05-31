@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -lcurses -lform
+CFLAGS=-g -Wall -lncurses
 
 all: human
 

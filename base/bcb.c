@@ -23,6 +23,7 @@
 
 #include <errno.h>
 #include <signal.h>
+#include <ctype.h>
 
 #include "bcb-base.h"
 #include "bcb-visual.h"
@@ -97,9 +98,12 @@ unsigned int starting_money = 0u;
 // socket file descriptor
 int sockfd;
 
-void setup_game(unsigned int NUMAGENTS)
+unsigned char socket_ready = 0u;
+void socket_setup()
 {
-	unsigned int i; char msg[MSG_BFR_SZ];
+	if (socket_ready) return;
+	socket_ready = 1u;
+	
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
 
@@ -128,7 +132,12 @@ void setup_game(unsigned int NUMAGENTS)
 	if (!rp) exit(1);
 	freeaddrinfo(result);
 	listen(sockfd, 8);
+}
 
+void setup_game(unsigned int NUMAGENTS)
+{
+	unsigned int i; char msg[MSG_BFR_SZ];
+	
 	// setup all bots provided
 	for (i = 0; i < NUMAGENTS; ++i)
 	{
@@ -295,7 +304,8 @@ void play_game()
 		for (i = 0, a = agents; i < NUMAGENTS; ++i, ++a)
 		{
 			// set whether or not the player is active
-			if (a->act = (a->status == RUNNING && a->pool > 0u)) ++activeplayers;
+			if ((a->act = (a->status == RUNNING && a->pool > 0u)))
+				++activeplayers;
 
 			// send out information about winnings
 			sprintf(msg, "ENDROUND %u", winnings[i]); tell_bot(msg, i);
@@ -349,7 +359,7 @@ void resolve_sidepots(unsigned int *winnings, unsigned int z)
 		// determine number of players in this pot with this card
 		for (i = 0, a = agents, hc = 0; i < z; ++i, ++a)
 			if (a->act && a->wager >= minwager && ALL_CARDS[i] == highcard) ++hc;
-		dist = pot / hc;
+		dist = hc ? pot / hc : 0;
 
 		// process this sidepot
 		for (i = 0, a = agents; i < z; ++i, ++a)
@@ -378,7 +388,7 @@ int main(int argc, char** argv)
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
 
-	unsigned int i; char msg[MSG_BFR_SZ];
+	unsigned int i;
 	++argv; --argc;
 
 	signal(SIGPIPE, sighandler);
@@ -416,6 +426,8 @@ void setup_agent(char* filename, int bot)
 {
 	if (!strcmp(filename, "HUMAN"))
 	{
+		socket_setup();
+		
 		socklen_t clen;
 		struct sockaddr_in cli_addr;
 		int nsockfd;
@@ -504,10 +516,13 @@ void listen_bot(char* msg, int bot)
 
 	// read message from file descriptor for a bot
 	bzero(msg, MSG_BFR_SZ);
-	int br = read(agents[bot].fds[READ], msg, MSG_BFR_SZ);
+
+	int br, bl; char* m = msg;
+	for (bl = MSG_BFR_SZ; bl > 0; bl -= br, m += br)
+		br = read(agents[bot].fds[READ], m, bl);
 
 	// msg[strcspn(msg, "\r\n")] = 0; // clear out newlines
-	if (DEBUG) fprintf(stderr, "--> RECV [%d]: %s\n", bot, msg);
+	if (DEBUG) fprintf(stderr, "==> RECV [%d]: (%d) %s\n", bot, br, msg);
 }
 
 // listen to a bot, with a limited amount of time to wait
@@ -542,14 +557,18 @@ void listen_bot_timeout(char* msg, int bot, int milliseconds)
 void tell_bot(char* msg, int bot)
 {
 	// write message to file descriptor for a bot
-	write(agents[bot].fds[WRITE], msg, MSG_BFR_SZ);
-	if (DEBUG) fprintf(stderr, "<-- SEND [%d]: %s\n", bot, msg);
+	int br, bl; char* m = msg;
+	for (bl = MSG_BFR_SZ; bl > 0; bl -= br, m += br)
+		br = write(agents[bot].fds[WRITE], m, bl);
+	
+	if (DEBUG) fprintf(stderr, "<-- SEND [%d]: (%d) %s\n", bot, br, msg);
 }
 
 // tell all bots (but one, possibly) a piece of data
 void tell_all(char* msg, int exclude)
 {
-	int i; for (i = 0; i < NUMAGENTS; ++i)
+	unsigned int i;
+	for (i = 0; i < NUMAGENTS; ++i)
 		if (i != exclude) tell_bot(msg, i);
 };
 

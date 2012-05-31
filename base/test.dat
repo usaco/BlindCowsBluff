@@ -3,8 +3,7 @@
 6
 1000 ../bots/CallBot
 1000 ../bots/CallBot
+1000 ../bots/Probabilistic
+1000 ../bots/Probabilistic
 1000 ../bots/Conservative
-1000 ../bots/Conservative
-1000 ../bots/AllIn
 1000 HUMAN
-1000 ../bots/Random
