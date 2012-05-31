@@ -135,9 +135,7 @@ int main(int argc, char **argv)
 
 					copyself(); recv(tag);
 					if (strcmp(tag, "GO")) EXPECTED(tag, "GO");
-
 					int k = player_turn(players, numplayers);
-					if (k > SELF.pool) k = SELF.pool;
 
 					// perform the chosen action
 					switch (k)
