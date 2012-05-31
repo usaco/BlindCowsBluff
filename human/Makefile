@@ -1,13 +1,13 @@
 CC=gcc
-CFLAGS=-g -Wall -lncurses
+CFLAGS=-g -Wall
 
-all: human
+all: human-curses
 
 bcb-client.o: bcb-client.c bcb-client.h
 
-human.o: human.c bcb-client.h
-human: bcb-client.o human.o
-	${CC} ${CFLAGS} -o $@ $^
+human-curses.o: human-curses.c bcb-client.h
+human-curses: bcb-client.o human-curses.o
+	${CC} ${CFLAGS} -o $@ $^ -lncurses
 
 clean:
 	rm -f *.o

@@ -274,7 +274,7 @@ int client_setup(int *argc, char ***argv)
 		buttons[i].win = newwin(3u, bw, SCREEN_HEIGHT - 4u, AW + 2 + i*(bw + 1));
 
 	sbprintf("Setting up player: %s", _bot_name);
-	sbprintf("Mouse is setup? %s", has_mouse() ? "TRUE" : "FALSE");
+	sbprintf("Mouse is setup? %s", has_mouse() && mousemask(BUTTON1_PRESSED, NULL) ? "TRUE" : "FALSE");
 
 	update_screen(NULL, 0u);
 	return 1;
@@ -334,7 +334,7 @@ int player_turn(const struct player_data* players, unsigned int numplayers)
 			case KEY_MOUSE:
 				if (getmouse(&event) == OK)
 				{
-					fprintf(stderr, "Clicked @ %d,%d\n", event.y, event.x);
+					fprintf(stderr, "Clicked @ %d,%d, %d\n", event.y, event.x);
 					struct button_t* b; int yy, xx;
 					for (i = 0, b = buttons; i < BTN_COUNT; ++i, ++b)
 					{
@@ -347,8 +347,8 @@ int player_turn(const struct player_data* players, unsigned int numplayers)
 							if (rtn != NO_ACTION) return rtn;
 						}
 					}
+					return CALL;
 				}
-				return CALL;
 				break;
 		}
 	}
